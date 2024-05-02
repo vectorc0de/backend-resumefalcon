@@ -1,12 +1,123 @@
 import uvicorn
 import json
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, Body
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import redis_wrapper
 from dotenv import dotenv_values
 from ollama import Client
+from enum import Enum
+
+class LinkedinDats:
+    def get_easy_apply(self):
+        job_description = {
+            "style": None,
+            "js_path": None,
+            "selector": ["#job-details > div"]
+        }
+
+        country = {
+            "content": [],
+            "style": [],
+            "js_path": [],
+            "selector": [],
+            "optional": True,
+            "order": 2
+        }
+
+        resume_load = {
+            "is_button": True,
+            "text": "upload resume",
+            "order": 4,
+            "optional": True,
+            "selector": ["#ember$$$ > div > div > form > div > div:nth-child(2) > div > div > div > label > span",
+                         "#ember$$$ > div > div:nth-child(2) > form > div > div > div > div > div > label > span"]
+        }
+
+        email = {
+        "content": [],
+        "is_input": True,
+        "style": None,
+        "js_path": [],
+        "selector": []
+        }
+
+        next_button2 = {
+            "style": ["artdeco-button__text"],
+            "text": "Next",
+            "js_path": None,
+            "is_button": True,
+            "selector": None,
+            "order": 6
+        }
+
+        mobile = {
+            "content": "4129998866",
+            "is_input": True,
+            "order": 1,
+            "is_pattern": True,
+            "style": ["fb-dash-form-element__error-field artdeco-text-input--input",
+                      " artdeco-text-input--input$$$",
+                      "fb-dash-form-element__error-field artdeco-text-input--input",
+                      "artdeco-text-input--input",
+                      "fb-dash-form-element__error-field artdeco-text-input--input",
+                      "fb-dash-form-element__error-field artdeco-text-input--input",
+                      " artdeco-text-input--input$$$"],
+
+            "js_path": None,
+            "id": ["single-line-text-form-component-formElement-urn-li-jobs-applyformcommon-easyApplyFormElement-3812991222-111026299-phoneNumber-nationalNumber"],
+            "selector": None,
+            "optional": False
+        }
+
+        next_button = {
+            "style": ["artdeco-button__text"],
+            "text": "Next",
+            "js_path": None,
+            "is_button": True,
+            "selector": None,
+            "order": 3,
+            "optional": True
+        }
+
+        resume_load_completed = {
+            "js_path": ["#jobsDocumentCardToggleLabel-ember$$$"],
+            "selector": ["#ember358"],
+            "style": ["artdeco-button artdeco-button--2 artdeco-button--primary ember-view"],
+            "is_pattern": True,
+            "order": 5,
+            "text": "submit",
+            "optional": False
+        }
+
+        skills = {}
+
+        job_title = {}
+
+        return {
+                "job": {
+                    "description": job_description,
+                    "skills": skills,
+                    "job_title": job_title
+                },
+
+                "apply_job": {"email": email,
+                              "next_button": next_button,
+                              "country": country,
+                              "next_button2": next_button2,
+                              "mobile": mobile,
+                              "resume_load_completed": resume_load_completed,
+                              "resume_load": resume_load
+                              }
+                }
+
+class PlatformId(Enum):
+    DICE = 1
+    LINKEDIN = 2
+    MONSTER = 3
+    INDEED = 5
+    ZIPRECRUITER = 4
 
 
 app = FastAPI()
@@ -31,19 +142,238 @@ class InputData(BaseModel):
     skills: str | None = None
 
 
-@app.get("/scrapper/job")
-def job_info():
-    description = {
-        "style": None,
-        "js_path": None,
-        "selector": ["#job-details > div"]
+@app.put("/jobs")
+async def update_job(job_data: dict = Body(...)):
+  """
+  Recv un from easy apply.
+
+  Parameters:
+      job_data (dict): Diccionary
+
+  Return:
+      dict: string message
+  """
+
+  payload = job_data.get("payload", {})
+  login_mail = payload.get("login_mail", "")
+  linkedin_job_post_title = payload.get("linkedin_job_post_title", "")
+  linkedin_job_post_description = payload.get("linkedin_job_post_description", "")
+  company_name = payload.get("company_name", "")
+  skills = payload.get("skills", "")
+  easy_apply = job_data.get("linkedin", {}).get("easyApply", False)
+
+  return {"message": linkedin_job_post_title}
+
+
+def llama2_parser(response):
+    first_name = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": "111111"
     }
 
-    return {"description": description,
-            "skills": {},
-            "title": {}
-            }
+    second_name = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": "111111"
+    }
 
+    mobile = {
+        "content": "4129875687",
+        "is_input": True,
+        "order": 1,
+        "optional": True,
+        # "style": "artdeco-text-input--input",
+        "style": " artdeco-text-input--input$$$",
+        # "style": "fb-dash-form-element__error-field artdeco-text-input--input",
+        # "style": "fb-dash-form-element__error-field artdeco-text-input--input",
+
+        "js_path": None,
+        "id": "single-line-text-form-component-formElement-urn-li-jobs-applyformcommon-easyApplyFormElement-3812991222-111026299-phoneNumber-nationalNumber",
+        "selector": None
+    }
+
+    email = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": None,
+        "js_path": "2222222",
+        "selector": "111111"
+    }
+
+    address1 = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": None
+    }
+
+    zip_code = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": "111111"
+    }
+
+    state = {
+        "content": "AAAAAAAA",
+        "is_input": False,
+        "style": None,
+        "js_path": "2222222",
+        "selector": "111111"
+    }
+
+    experience_details = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": "2222222",
+        "js_path": None,
+        "selector": "111111"
+    }
+
+    facebook = {
+        "content": "AAAAAAAA",
+        "is_input": False,
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": "111111"
+    }
+
+    proposal = {
+        "content": "AAAAAAAA",
+        "is_input": True,
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": "111111"
+    }
+
+    job_title = {
+        "content": "AAAAAAAA",
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": None
+    }
+
+    country = {
+        "content": "AAAAAAAA",
+        "style": "2222222",
+        "js_path": "2222222",
+        "selector": "111111",
+        "optional": True,
+        "order": 2
+    }
+
+    resume_load_completed = {
+        "js_path": "#jobsDocumentCardToggleLabel-ember$$$",
+        "optional": False,
+        "order": 5
+    }
+
+    next_button2 = {
+        "style": "artdeco-button__text",
+        "text": "Next",
+        "js_path": None,
+        "is_button": True,
+        "selector": None,
+        "optional": True,
+        "order": 6
+    }
+
+    job_about = {
+        "style": None,
+        "text": None,
+        "js_path": None,
+        "is_button": False,
+        "selector": ["#job-details > div"],
+        "optional": True,
+        "order": 1
+    }
+
+    next_button = {
+        "style": "artdeco-button__text",
+        "text": "Next",
+        "js_path": None,
+        "is_button": True,
+        "selector": None,
+        "order": 3
+    }
+
+    resume_load = {
+        "is_button": True,
+        "text": "upload resume",
+        "order": 4,
+        "optional": False,
+        "selector": ["#ember$$$ > div > div > form > div > div:nth-child(2) > div > div > div > label > span",
+                     "#ember$$$ > div > div:nth-child(2) > form > div > div > div > div > div > label > span"]
+    }
+
+    experience_years = {
+        "style": "2222222",
+        "is_input": True,
+        "js_path": "#ember317 > div > div:nth-child(2) > form > div > div > div > div > div > label > span",
+        "selector": "111111"
+    }
+
+    ret_dict = {
+        "is_signup_page": False,
+        "is_external_page": False,
+
+        "is_normal": True,
+        "resume_load": resume_load,
+        "job_about": job_about,
+        "experience_years": experience_years,
+        "next_button": next_button,
+        "next_button2": next_button2,
+        "f_name": first_name,
+        "s_name": second_name,
+        "email": email,
+        "mobile": mobile,
+        "country": country,
+        "state": state,
+        "address1": address1,
+        "job_title": job_title,
+        "proposal": proposal,
+        "facebook": facebook,
+        "zip_code": zip_code,
+        "resume_load_completed": resume_load_completed,
+        "experience_details": experience_details
+    }
+
+    return ret_dict
+
+
+@app.put("/resume/html")
+def recv_resume(input_html: Html):
+    # Enviar al LLM
+    # llama2_raw_data = llama2_prompt(input_html.content_raw)
+
+    llama2_raw_data = None
+
+    # Parser respuesta del LLM
+    llama_data = llama2_parser(llama2_raw_data)
+
+    # Save info into redis
+    # result = send_data_redis(444, llama_data)
+
+    return {"response": llama_data}
+
+
+@app.post("/scrapper/job")
+def job_offsets(
+    site_flag: int = Body(..., description="Site flag (numeric)"),
+    page: int = Body(..., description="Another numeric parameter")
+):
+
+    if site_flag == PlatformId.LINKEDIN.value and page == 1:
+        # Easy apply
+        lnk_dats = LinkedinDats()
+        return lnk_dats.get_easy_apply()
 
 @app.post("/llm/test")
 def llm_test(input: InputData):
